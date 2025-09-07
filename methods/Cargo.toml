@@ -1,0 +1,7 @@
+[package]
+name = "consenzisk_methods"
+version = "0.1.0"
+edition = "2021"
+
+[package.metadata.zisk]
+methods = ["guest"]

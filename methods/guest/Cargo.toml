@@ -1,0 +1,12 @@
+[package]
+name = "consenzisk_guest"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+consenzisk_methods = { path = ".." }
+ream_lib = { path = "../../lib" }
+ream-consensus = { workspace = true }
+tree_hash = { workspace = true }
+bincode = { workspace = true }
+ziskos = { workspace = true }
