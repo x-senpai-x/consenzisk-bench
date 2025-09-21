@@ -102,8 +102,7 @@ impl OperationHandler for BlockOperation {
     }
 
     fn load_test_cases(&self, fork: &crate::cli::fork::Fork) -> (PathBuf, Vec<String>) {
-        let test_case_dir = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-            .join("mainnet");
+        let test_case_dir = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("mainnet");
 
         let base_dir = test_case_dir
             .join(format!("{}", fork))
@@ -129,8 +128,7 @@ impl OperationHandler for EpochOperation {
     }
 
     fn load_test_cases(&self, fork: &crate::cli::fork::Fork) -> (PathBuf, Vec<String>) {
-        let test_case_dir = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-            .join("mainnet");
+        let test_case_dir = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("mainnet");
 
         let base_dir = test_case_dir
             .join(format!("{}", fork))

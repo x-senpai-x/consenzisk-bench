@@ -13,7 +13,6 @@ path = "src/bin/main.rs"
 clap = { version = "4.0", features = ["derive", "env"] }
 derive_more = { version = "2.0.1", features = ["full"] }
 ream_lib = { path = "../lib" }
-consenzisk_methods = { path = "../methods" }
 sha2 = { workspace = true }
 byteorder = { workspace = true }
 serde = { version = "1.0", default-features = false, features = ["derive"] }

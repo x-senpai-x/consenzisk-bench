@@ -9,9 +9,9 @@ use cli::{
     operation::{Operation, OperationHandler},
 };
 use ream_consensus::electra::beacon_state::BeaconState;
-use std::process::Command;
+use serde::{Deserialize, Serialize};
 use std::fs;
-
+use std::process::Command;
 #[derive(Parser, Debug)]
 #[clap(author, version, about, long_about = None)]
 struct Args {
@@ -26,16 +26,46 @@ struct Args {
     #[clap(long)]
     excluded_cases: Vec<String>,
 }
+#[derive(Serialize, Deserialize)]
+pub struct ZiskInput {
+    pre_state_ssz_bytes: Vec<u8>,
+    operation_input: Vec<u8>, // or your specific operation type
+}
 
 fn main() {
     setup_log();
     let (fork, operation, excluded_cases, compare_specs, compare_recompute) = parse_args();
+    let build_guest_result = Command::new("cargo-zisk")
+        .args(["build", "--release"])
+        .current_dir("guest")
+        .status()
+        .expect("Failed to build guest code");
+    if !build_guest_result.success() {
+        eprintln!("Guest code build failed!");
+        std::process::exit(1);
+    }
     match operation {
-        Operation::Block { operation: block_op } => {
-            run_tests(&fork, &block_op, excluded_cases, compare_specs, compare_recompute);
+        Operation::Block {
+            operation: block_op,
+        } => {
+            run_tests(
+                &fork,
+                &block_op,
+                excluded_cases,
+                compare_specs,
+                compare_recompute,
+            );
         }
-        Operation::Epoch { operation: epoch_op } => {
-            run_tests(&fork, &epoch_op, excluded_cases, compare_specs, compare_recompute);
+        Operation::Epoch {
+            operation: epoch_op,
+        } => {
+            run_tests(
+                &fork,
+                &epoch_op,
+                excluded_cases,
+                compare_specs,
+                compare_recompute,
+            );
         }
     }
 }
@@ -58,43 +88,51 @@ fn run_tests<T: OperationHandler>(
         let input = operation.prepare_input(&case_dir);
         let pre_state_ssz_bytes: Vec<u8> = ssz_from_file(&case_dir.join("pre.ssz_snappy"));
         // Write input to file for ZISK guest
-        let build_dir = PathBuf::from("build");
+        let build_dir = PathBuf::from("guest/build");
         if !build_dir.exists() {
+            info!("Creating build directory at {:?}", build_dir);
             fs::create_dir_all(&build_dir).expect("Failed to create build directory");
         }
         let input_path = build_dir.join("input.bin");
-        // Serialize pre_state_ssz_bytes and input as needed for ZISK guest
-        // (You may need to adjust this to match your ZISK guest input expectations)
-        let mut input_data = Vec::new();
-        input_data.extend(&(pre_state_ssz_bytes.len() as u64).to_le_bytes());
-        input_data.extend(&pre_state_ssz_bytes);
-        input_data.extend(bincode::serialize(&input).unwrap());
-        fs::write(&input_path, input_data).expect("Failed to write input file");
-        // Build and run the ZISK guest
-        let build_guest_result = Command::new("cargo")
-            .args(["build", "--release", "-p", "consenzisk_guest"])
-            .status()
-            .expect("Failed to build guest code");
-        if !build_guest_result.success() {
-            eprintln!("Guest code build failed!");
-            std::process::exit(1);
-        }
+
+        let _written = write_zisk_input(
+            pre_state_ssz_bytes.clone(),
+            bincode::serialize(&input).unwrap(),
+            input_path.to_str().unwrap(),
+        );
+        info!("Input written to {:?}", input_path);
+        info!("----- Cycle Tracker Start -----");
+
         let output = Command::new("ziskemu")
-            .args(["-i", input_path.to_str().unwrap(), "-e", "target/riscv64ima-zisk-zkvm-elf/release/sha_hasher_guest"])
+            .args([
+                "-i",
+                input_path.to_str().unwrap(),
+                "-e",
+                "target/riscv64ima-zisk-zkvm-elf/release/consenzisk_guest",
+            ])
             .output()
             .expect("Failed to run ZISK VM");
         if !output.status.success() {
-            eprintln!("ZISK execution failed!\n{}", String::from_utf8_lossy(&output.stderr));
+            eprintln!(
+                "ZISK execution failed for test case {}!\n{}",
+                test_case,
+                String::from_utf8_lossy(&output.stderr)
+            );
             std::process::exit(1);
         }
-        // Parse output (adjust as needed for your ZISK guest output format)
+
+        // Parse output from ZISK guest
         let zisk_output = String::from_utf8_lossy(&output.stdout);
-        info!("ZISK output: {}", zisk_output);
-        // TODO: Parse new_state_root from zisk_output
-        // let new_state_root = ...;
-        // Compare roots as in original logic
-        // if compare_specs { ... }
-        // if compare_recompute { ... }
+        info!("ZISK output for {}: {}", test_case, zisk_output);
+
+        let new_state_root = parse_state_root_from_hex(&zisk_output);
+        if compare_specs {
+            assert_state_root_matches_specs(&new_state_root, &pre_state_ssz_bytes, &case_dir);
+        }
+        if compare_recompute {
+            assert_state_root_matches_recompute(&new_state_root, &pre_state_ssz_bytes, &input);
+        }
+
         info!("----- Cycle Tracker End -----");
     }
 }
@@ -109,7 +147,20 @@ fn setup_log() {
         .with_env_filter(tracing_subscriber::filter::EnvFilter::from_default_env())
         .init();
 }
+fn write_zisk_input(
+    pre_state_ssz_bytes: Vec<u8>,
+    operation_input: Vec<u8>,
+    input_path: &str,
+) -> Result<(), Box<dyn std::error::Error>> {
+    let zisk_input = ZiskInput {
+        pre_state_ssz_bytes,
+        operation_input,
+    };
 
+    let serialized_input = bincode::serialize(&zisk_input)?;
+    std::fs::write(input_path, serialized_input)?;
+    Ok(())
+}
 fn parse_args() -> (Fork, Operation, Vec<String>, bool, bool) {
     let args = Args::parse();
 
@@ -151,6 +202,31 @@ fn assert_state_root_matches_specs(
             info!("Execution is correct! State should not be mutated and the roots match.");
         }
     }
+}
+
+fn parse_state_root_from_hex(hex_output: &str) -> Hash256 {
+    // The guest program outputs the state root as hex string
+    // Find the hex string in the output (it should be a 64-character hex string)
+    let lines: Vec<&str> = hex_output.lines().collect();
+
+    for line in lines {
+        let trimmed = line.trim();
+        // Look for a 64-character hex string (32 bytes * 2 chars per byte)
+        if trimmed.len() == 64 && trimmed.chars().all(|c| c.is_ascii_hexdigit()) {
+            // Parse hex string to bytes
+            let mut bytes = [0u8; 32];
+            for (i, chunk) in trimmed.as_bytes().chunks(2).enumerate() {
+                let hex_str = std::str::from_utf8(chunk).unwrap();
+                bytes[i] = u8::from_str_radix(hex_str, 16).unwrap();
+            }
+            return Hash256::from(bytes);
+        }
+    }
+
+    panic!(
+        "Could not find valid hex state root in output: {}",
+        hex_output
+    );
 }
 
 fn assert_state_root_matches_recompute(

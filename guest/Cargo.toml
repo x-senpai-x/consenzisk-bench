@@ -4,9 +4,10 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-consenzisk_methods = { path = ".." }
-ream_lib = { path = "../../lib" }
+ream_lib = { path = "../lib" }
 ream-consensus = { workspace = true }
 tree_hash = { workspace = true }
 bincode = { workspace = true }
 ziskos = { workspace = true }
+consenzisk_host = { path = "../host" }
+serde = { version = "1.0", features = ["derive"] }

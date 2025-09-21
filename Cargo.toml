@@ -1,5 +1,5 @@
 [workspace]
-members = ["host", "lib", "methods", "methods/guest"]
+members = ["host", "lib", "guest"]
 default-members = ["host"]
 resolver = "2"
 

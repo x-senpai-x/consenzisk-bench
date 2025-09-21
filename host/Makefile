@@ -10,7 +10,6 @@ SORT_SCRIPT = ./subscripts/sort_table.sh
 BLOCK_OPERATIONS = attestation attester_slashing block_header bls_to_execution_change deposit execution_payload proposer_slashing sync_aggregate voluntary_exit withdrawals
 EPOCH_OPERATIONS = justification_and_finalization inactivity_updates rewards_and_penalties registry_updates slashings eth1_data_reset pending_deposits pending_consolidations effective_balance_updates slashings_reset randao_mixes_reset historical_summaries_update participation_flag_updates
 
-ZISK_DEV_MODE = 1
 RUST_BACKTRACE = full
 
 .PHONY: all download run clean $(addprefix run-block-, $(BLOCK_OPERATIONS)) $(addprefix run-epoch-, $(EPOCH_OPERATIONS)) block-all epoch-all
@@ -37,12 +36,12 @@ $(addprefix run-block-, $(BLOCK_OPERATIONS)): run-block-%: $(EXTRACT_DIR)
 	@echo "##################################################"
 	@echo "Running block benchmarks for $*..."
 	@echo "##################################################"
-	@NO_COLOR=1 ZISK_DEV_MODE=$(ZISK_DEV_MODE) RUST_BACKTRACE=$(RUST_BACKTRACE) \
+	@cd .. && NO_COLOR=1 RUST_BACKTRACE=$(RUST_BACKTRACE) \
 		cargo run -p consenzisk_host --release --bin main -- \
 			--excluded-cases multi_proposer_index_iterations \
 			--excluded-cases random_with_exits_with_duplicates \
 			block $* \
-			2>&1 | tee $(LOGS_DIR)/execution_block_$*.log
+			2>&1 | tee host/$(LOGS_DIR)/execution_block_$*.log
 	@echo "Execution complete for block $*."
 	@$(PARSE_SCRIPT) block_$*
 	@$(SORT_SCRIPT) $(SUMMARIES_DIR)/summary_block_$*.md
@@ -53,10 +52,10 @@ $(addprefix run-epoch-, $(EPOCH_OPERATIONS)): run-epoch-%: $(EXTRACT_DIR)
 	@echo "##################################################"
 	@echo "Running epoch processing benchmarks for $*..."
 	@echo "##################################################"
-	@NO_COLOR=1 ZISK_DEV_MODE=$(ZISK_DEV_MODE) RUST_BACKTRACE=$(RUST_BACKTRACE) \
+	@cd .. && NO_COLOR=1 RUST_BACKTRACE=$(RUST_BACKTRACE) \
 		cargo run -p consenzisk_host --release --bin main -- \
 			epoch $* \
-			2>&1 | tee $(LOGS_DIR)/execution_epoch_$*.log
+			2>&1 | tee host/$(LOGS_DIR)/execution_epoch_$*.log
 	@echo "Execution complete for epoch $*."
 	@$(PARSE_SCRIPT) epoch_$*
 	@$(SORT_SCRIPT) $(SUMMARIES_DIR)/summary_epoch_$*.md
