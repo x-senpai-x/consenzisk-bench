@@ -1,0 +1,32 @@
+| Operation | Test Case | Execution Time |
+|-----------|-----------|----------------|
+attester_slashing | invalid_all_empty_indices | 12.0136 |
+attester_slashing | invalid_no_double_or_surround | 12.1042 |
+attester_slashing | invalid_unsorted_att_2 | 13.1115 |
+attester_slashing | invalid_att1_bad_extra_index | 13.1778 |
+attester_slashing | invalid_att1_bad_replaced_index | 12.9899 |
+attester_slashing | invalid_att1_duplicate_index_normal_signed | 12.4277 |
+attester_slashing | basic_surround | 26.1079 |
+attester_slashing | already_exited_recent | 18.4590 |
+attester_slashing | invalid_att2_bad_replaced_index | 13.8372 |
+attester_slashing | invalid_same_data | 11.9411 |
+attester_slashing | invalid_incorrect_sig_2 | 13.8023 |
+attester_slashing | invalid_att2_duplicate_index_double_signed | 12.8649 |
+attester_slashing | misc_balances | 17.0057 |
+attester_slashing | invalid_att2_high_index | 12.8605 |
+attester_slashing | invalid_participants_already_slashed | 13.8112 |
+attester_slashing | proposer_index_slashed | 15.0624 |
+attester_slashing | invalid_att1_high_index | 11.9677 |
+attester_slashing | invalid_unsorted_att_1 | 11.9705 |
+attester_slashing | invalid_incorrect_sig_1_and_2 | 12.6233 |
+attester_slashing | low_balances | 19.1646 |
+attester_slashing | invalid_incorrect_sig_1 | 12.6101 |
+attester_slashing | attestation_from_future | 18.4374 |
+attester_slashing | with_effective_balance_disparity | 17.6016 |
+attester_slashing | invalid_att2_bad_extra_index | 14.3646 |
+attester_slashing | invalid_att2_duplicate_index_normal_signed | 13.2963 |
+attester_slashing | invalid_att1_duplicate_index_double_signed | 12.0797 |
+attester_slashing | already_exited_long_ago | 18.3056 |
+attester_slashing | invalid_att1_empty_indices | 12.0458 |
+attester_slashing | invalid_att2_empty_indices | 13.0442 |
+attester_slashing | basic_double | 18.6848 |
