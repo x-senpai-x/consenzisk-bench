@@ -8,6 +8,6 @@ ream_lib = { path = "../lib" }
 ream-consensus = { workspace = true }
 tree_hash = { workspace = true }
 bincode = { workspace = true }
-ziskos = { workspace = true }
+ziskos = { git = "https://github.com/0xPolygonHermez/zisk.git" }
 consenzisk_host = { path = "../host" }
 serde = { version = "1.0", features = ["derive"] }

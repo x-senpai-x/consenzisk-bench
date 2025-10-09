@@ -105,10 +105,12 @@ fn run_tests<T: OperationHandler>(
 
         let output = Command::new("ziskemu")
             .args([
-                "-i",
-                input_path.to_str().unwrap(),
                 "-e",
                 "target/riscv64ima-zisk-zkvm-elf/release/consenzisk_guest",
+                "-i",
+                input_path.to_str().unwrap(),
+                "-m",
+                "-x",
             ])
             .output()
             .expect("Failed to run ZISK VM");

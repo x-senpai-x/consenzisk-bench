@@ -7,52 +7,31 @@ use tree_hash::TreeHash;
 use ziskos::read_input;
 use serde::{Serialize, Deserialize};
 // use consenzisk_host::bin::ZiskInput;  // Import ZiskInput struct
-#[derive(Serialize, Deserialize)]  
-pub struct ZiskInput {  
-    pre_state_ssz_bytes: Vec<u8>,  
-    operation_input: Vec<u8>, // or your specific operation type  
-}  
+#[derive(Serialize, Deserialize)]
+pub struct ZiskInput {
+    pre_state_ssz_bytes: Vec<u8>,
+    operation_input: Vec<u8>, // or your specific operation type
+}
 
 fn main() {
     // Read inputs to the program.
+    eprintln!("{}:{}", "read-inputs", "start");
     let input_bytes=read_input();
-    let zisk_input: ZiskInput = bincode::deserialize(&input_bytes).expect("Failed to deserialize input");  
+    eprintln!("{}:{}", "read-inputs", "end");
 
-    // eprintln!("{}:{}", "read-pre-state-len", "start");
-    // let pre_state_len: Vec<u8> = read_input();
-    // eprintln!("Received pre_state_len bytes: {:?}", pre_state_len);
+    eprintln!("{}:{}", "deserialize-inputs", "start");
+    let zisk_input: ZiskInput = bincode::deserialize(&input_bytes).expect("Failed to deserialize input");
+    eprintln!("{}:{}", "deserialize-inputs", "end");
 
-    // The host sends a u64, so read it as u64 first
-    // if pre_state_len.len() != 8 {
-    //     panic!("Expected 8 bytes for length, got {}", pre_state_len.len());
-    // }
-    // let len_bytes: [u8; 8] = pre_state_len.try_into().unwrap();
-    // let n: usize = u64::from_le_bytes(len_bytes) as usize;
-    // eprintln!("{}:{} - length: {}", "read-pre-state-len", "end", n);
-
-    // eprintln!("{}:{}", "read-pre-state-ssz", "start");
-    // let mut pre_state_ssz_bytes = vec![0u8; n];
     let pre_state_ssz_bytes = zisk_input.pre_state_ssz_bytes;
-    eprintln!(
-        "{}:{} - bytes read: {}",
-        "read-pre-state-ssz",
-        "end",
-        pre_state_ssz_bytes.len()
-    );
-
-    eprintln!("{}:{}", "deserialize-state", "start");
+    eprintln!("{}:{}", "deserialize-pre-state-ssz", "start");
     let mut state: BeaconState = from_ssz_bytes(&pre_state_ssz_bytes).unwrap();
-    eprintln!("{}:{}", "deserialize-state", "end");
+    eprintln!("{}:{}", "deserialize-pre-state-ssz", "end");
 
-    eprintln!("{}:{}", "read-operation-input", "start");
-    let operation_input_bytes = zisk_input.operation_input;  
+    eprintln!("{}:{}", "deserialize-operation-input", "start");
+    let operation_input_bytes = zisk_input.operation_input;
     let operation_input: OperationInput = bincode::deserialize(&operation_input_bytes).unwrap();
-    eprintln!(
-        "{}:{} - input bytes: {}",
-        "read-operation-input",
-        "end",
-        operation_input_bytes.len()
-    );
+    eprintln!("{}:{}", "deserialize-operation-input", "end");
 
     // Main logic of the program.
     // State transition of the beacon state.

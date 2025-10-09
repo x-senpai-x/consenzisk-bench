@@ -82,8 +82,14 @@ BEGIN {
     commit_end = $NF;
 }
 
-/execution time:/ {
-    execution_time = $NF;
+/process_rom\(\) steps=/ {
+    # Extract duration from the line: process_rom() steps=... duration=X.XXXX ...
+    for (i = 1; i <= NF; i++) {
+        if ($i ~ /^duration=/) {
+            execution_time = substr($i, 10);  # Remove "duration=" prefix
+            break;
+        }
+    }
 }
 
 /----- Cycle Tracker End -----/ {
