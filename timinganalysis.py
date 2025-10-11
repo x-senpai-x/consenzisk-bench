@@ -150,63 +150,28 @@ class ZiskTimingAnalyzer:
         if not self.execution_stats:
             return
             
-        if self._load_actual_timing_data():
-            self._calculate_from_actual_data()
-        elif self.operations:
-            self._calculate_complexity_based()
+        if self.operations:
+            self._calculate_from_zisk_output()
     
-    def _load_actual_timing_data(self) -> bool:
-        """Load actual timing data from timing_results.json if available."""
-        try:
-            json_paths = ['timing_results.json', './timing_results.json', '../timing_results.json']
-            data = None
-            
-            for json_path in json_paths:
-                try:
-                    with open(json_path, 'r') as f:
-                        data = json.load(f)
-                        break
-                except FileNotFoundError:
-                    continue
-                    
-            if data is None:
-                return False
-                
-            if 'operations' in data:
-                self.operations = []
-                for op_data in data['operations']:
-                    op = OperationTiming(
-                        name=op_data['name'],
-                        steps=op_data.get('steps'),
-                        duration=op_data.get('duration'),
-                        cost=op_data.get('cost')
-                    )
-                    self.operations.append(op)
-                return True
-        except (FileNotFoundError, json.JSONDecodeError, KeyError):
-            pass
-        return False
-    
-    def _calculate_from_actual_data(self) -> None:
-        """Calculate costs using actual measured timing data."""
-        pass
-        
-            
-    def _calculate_complexity_based(self) -> None:
-        """Calculate costs using equal distribution (fallback only)."""
+    def _calculate_from_zisk_output(self) -> None:
+        """Calculate costs using equal distribution based on operation count."""
         if not self.execution_stats or not self.operations:
             return
             
-        num_operations = len(self.operations)
-        if num_operations == 0:
+        total_steps = self.execution_stats.total_steps
+        total_duration = self.execution_stats.total_duration
+        total_cost = self.execution_stats.total_cost
+        
+        if total_steps == 0 or len(self.operations) == 0:
             return
             
-        equal_weight = 1.0 / num_operations
+        equal_weight = 1.0 / len(self.operations)
         
         for op in self.operations:
-            op.steps = int(self.execution_stats.total_steps * equal_weight)
-            op.duration = self.execution_stats.total_duration * equal_weight
-            op.cost = self.execution_stats.total_cost * equal_weight
+            op.steps = int(total_steps * equal_weight)
+            op.duration = total_duration * equal_weight
+            op.cost = total_cost * equal_weight
+    
             
             
     def generate_report(self) -> str:
@@ -241,16 +206,10 @@ class ZiskTimingAnalyzer:
             report.append("-" * 40)
             
             for op in self.operations:
-                if op.steps is not None and op.cost is not None:
-                    op_steps = op.steps
-                    op_cost = op.cost
-                    op_time = op.duration if op.duration is not None else 0.0
-                    weight = op_steps / self.execution_stats.total_steps if self.execution_stats.total_steps > 0 else 0.0
-                else:
-                    weight = 1.0 / len(self.operations) if len(self.operations) > 0 else 0.0
-                    op_steps = int(self.execution_stats.total_steps * weight)
-                    op_time = self.execution_stats.total_duration * weight
-                    op_cost = self.execution_stats.total_cost * weight
+                op_steps = op.steps
+                op_cost = op.cost
+                op_time = op.duration if op.duration is not None else 0.0
+                weight = op_steps / self.execution_stats.total_steps if self.execution_stats.total_steps > 0 else 0.0
                 
                 report.append(f"{op.name}:")
                 report.append(f"  Weight: {weight*100:.1f}%")
